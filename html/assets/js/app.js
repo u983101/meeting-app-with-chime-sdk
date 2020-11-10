@@ -1,7 +1,13 @@
 var startButton = document.getElementById("start-button");
 var stopButton = document.getElementById("stop-button");
-
+var muteMyself = document.getElementById("mute-myself");
+var btnSessionCode = document.getElementById("btnSessionCode");
+var txtSessionId = document.getElementById("txtSessionId");
+var dashboard = document.getElementById("dashboard");
 var urlParams = new URLSearchParams(window.location.search);
+var sessionUrl = "https://40hps3f0i8.execute-api.ap-southeast-1.amazonaws.com/dev/device/session?id=";
+var muted = false;
+var timer;
 
 function generateString() {
     return (
@@ -116,9 +122,10 @@ function updateTiles(meetingSession) {
 }
 
 async function stop() {
+    clearInterval(timer);
     const response = await fetch("end", {
         body: {
-            meetingId: meetingId,
+            "meetingId": meetingId,
         },
         method: "POST",
         headers: new Headers(),
@@ -128,10 +135,57 @@ async function stop() {
     console.log(data);
 }
 
+function toggleMute() {
+    if (!muted) {
+        window.meetingSession.audioVideo.realtimeMuteLocalAudio();
+        muteMyself.innerText = "Unmute Myself";
+    } else {
+        window.meetingSession.audioVideo.realtimeUnmuteLocalAudio();
+        muteMyself.innerText = "Mute Myself";
+    }
+}
+
+async function getSessionDetails() {
+    timer = setInterval(
+        async() => {
+            var url = sessionUrl + txtSessionId.value;
+            console.log(url);
+            jQuery.getJSON(url, (data) => {
+                console.log(data.members);
+                data.members.forEach((member) => {
+                    if (document.getElementById("member-" + member.id) === null) {
+                        var data = '<div id="member-' + member.id + '" class="col mb-4"><div class="card"><div class="card-body"><h5 class="card-title">';
+                        data = data + member.name + '</h5><p class="card-text" id="hr-' + member.id + '">' + member.last_hr + ' BPM</p></div></div></div>';
+                        $("#dashboard").append(data);
+                    } else {
+                        document.getElementById('hr-' + member.id).innerText = member.last_hr + ' BPM';
+                    }
+                });
+            });
+        }, 2000
+    );
+}
+
 window.addEventListener("DOMContentLoaded", () => {
     startButton.addEventListener("click", start);
 
     if (isMeetingHost) {
         stopButton.addEventListener("click", stop);
     }
+
+    muteMyself.addEventListener("click", toggleMute);
+    btnSessionCode.addEventListener("click", getSessionDetails);
 });
+
+$.urlParam = function(name){
+	var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+	return results[1] || 0;
+}
+
+$(document).ready(function() { 
+    var sessionId = $.urlParam('sessionId');
+    if (sessionId !== undefined && sessionId !== null) {
+        txtSessionId.value = sessionId;
+        getSessionDetails();
+    }
+ });

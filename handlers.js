@@ -1,6 +1,6 @@
 const AWS = require("aws-sdk");
 
-const chime = new AWS.Chime();
+const chime = new AWS.Chime({ region: 'us-east-1' });
 const { v4: uuidv4 } = require("uuid");
 
 // Set the AWS SDK Chime endpoint. The global endpoint is https://service.chime.aws.amazon.com.
@@ -22,10 +22,11 @@ exports.join = async (event, context, callback) => {
     if (!query.meetingId) {
         //new meeting
         meetingId = uuidv4();
+        console.log("Doing this");
         meeting = await chime
             .createMeeting({
                 ClientRequestToken: meetingId,
-                MediaRegion: "eu-west-1",
+                MediaRegion: "us-east-1",
                 ExternalMeetingId: meetingId,
             })
             .promise();
@@ -38,7 +39,7 @@ exports.join = async (event, context, callback) => {
             })
             .promise();
     }
-
+    
     //We've initialized our meeting! Now let's add attendees.
     const attendee = await chime
         .createAttendee({
